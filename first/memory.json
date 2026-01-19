@@ -5,10 +5,16 @@
     "age": "20",
     "dislikes": "oranges",
     "subject_dislikes": "Computer Science and Engineering",
-    "additional_dislikes": "CSE"
+    "additional_dislikes": "apples"
   },
   "tool_outputs": {
-    "calculation": "783750"
+    "ocr_text": "13%\n\nof text is likely Al \u00a9\n\u20ac QuillBot\n\nAl Human\n\nAl-generated \u00a9\nHuman-written & Al-refined \u00a9\n\nHuman-written \u00a9\n\n@ 13%\n1%\n86%"
   },
-  "user_input": ""
+  "user_input": "",
+  "documents": [
+    {
+      "source": "C:\\\\Users\\\\3shub\\\\Downloads\\\\Screenshot 2025-11-16 161030.png",
+      "text": "13%\n\nof text is likely Al \u00a9\n\u20ac QuillBot\n\nAl Human\n\nAl-generated \u00a9\nHuman-written & Al-refined \u00a9\n\nHuman-written \u00a9\n\n@ 13%\n1%\n86%"
+    }
+  ]
 }

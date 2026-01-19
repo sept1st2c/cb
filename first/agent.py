@@ -2,6 +2,8 @@ import os
 import json
 from openai import OpenAI
 from dotenv import load_dotenv
+from PIL import Image
+import pytesseract
 
 load_dotenv()
 client = OpenAI(
@@ -21,6 +23,16 @@ def load_memory():
 def save_memory(memory):
     with open(MEMORY_FILE, "w") as f:
         json.dump(memory, f, indent=2)
+
+
+def ocr_extract_text(image_path):
+    try:
+        image = Image.open(image_path)
+        text = pytesseract.image_to_string(image)
+        return text.strip()
+    except Exception as e:
+        return f"OCR failed: {str(e)}"
+
 
 
 # ---------- TOOL ----------
@@ -86,85 +98,14 @@ Plan Schema:
     return json.loads(response.choices[0].message.content)
 
 
-
-# ---------- AGENT BRAIN ----------
-def agent_think(user_input, memory):
-    system_prompt = f"""
-You are a simple AI agent.
-
-MEMORY:
-{memory}
-
-
-
-TOOLS AVAILABLE:
-
-1. get_current_time
-- Use when the user asks for the current time or date.
-
-2. calculate
-- Use when the user asks to calculate or compute something.
-- Input must be a valid math expression (example: "2 + 3 * 4")
-
-Decide the next best action to move toward answering the full question.
-
-
-RESPONSE FORMAT:
-You MUST respond with VALID JSON ONLY.
-No extra text.
-No markdown.
-No explanations.
-
-IMPORTANT RULES:
-- You must output EXACTLY ONE JSON object.
-- You must choose ONLY ONE action per response.
-- NEVER output multiple JSON objects.
-- NEVER plan multiple steps in one response.
-- The system will call you again after each action.
-
-
-
-Use a tool:
-{{
-  "action": "get_current_time"
-}}
-
-{{
-  "action": "calculate",
-  "input": "math expression"
-}}
-
-Remember information:
-{{
-  "action": "remember",
-  "key": "name/age/bheaviour traits/etc",
-  "value": "user_name_here/user_age_here/user_behaviour_traits_here/etc"
-}}
-
-Finish answering:
-{{
-  "action": "final",
-  "input": "full answer to the user's question"
-}}
-IMPORTANT: Do not apologize. Do not say you are an AI. If asked for the time, use the tool.
-"""
-
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_input}
-        ]
-    )
-
-    return response.choices[0].message.content
-
 # ---------- AGENT LOOP ----------
 def run_agent(user_input):
     
     memory = load_memory()
     memory.setdefault("user_profile", {})
     memory["tool_outputs"] = {}
+    memory.setdefault("documents", [])
+
 
     plan_obj = planner_agent(user_input, memory)
     print("🗺️ PLAN:", plan_obj)
@@ -183,6 +124,17 @@ def run_agent(user_input):
         # ---- CALCULATOR ----
         elif action == "calculate":
             memory["tool_outputs"]["calculation"] = calculate(step["input"])
+        
+        elif action == "ocr_extract_text":
+            extracted_text = ocr_extract_text(step["input"])
+            memory["tool_outputs"]["ocr_text"] = extracted_text
+
+            memory["documents"].append({
+                "source": step["input"],
+                "text": extracted_text
+            })
+
+
 
         # ---- FINAL ----
         elif action == "final":
@@ -215,6 +167,9 @@ User profile:
 
 Tool outputs:
 {memory["tool_outputs"]}
+
+Documents involved before:
+{memory["documents"]}
 """
             }
         ]
