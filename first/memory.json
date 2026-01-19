@@ -1,21 +1,14 @@
 {
   "user_profile": {
-    "name": "Shubh",
-    "age": "20",
-    "user_profile": {
-      "name": "SHUBH",
-      "age": "20"
-    },
     "greeting": "hi",
-    "greeting_response": "Hello Shubh, how can I assist you today?",
-    "dislikes": "cse",
-    "user_name": "Shubh",
-    "user_age": "20",
-    "assistant_info": "I am a PLANNER AI"
+    "name": "shubh",
+    "age": "20",
+    "dislikes": "oranges",
+    "subject_dislikes": "Computer Science and Engineering",
+    "additional_dislikes": "CSE"
   },
   "tool_outputs": {
-    "calculation": "9",
-    "current_time": "Current time is 10:30 PM"
+    "calculation": "783750"
   },
-  "user_input": "what is my name and age ? what are my dislikes ? what time is it ?what is 2+2+2*1025?"
+  "user_input": ""
 }

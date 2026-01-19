@@ -47,6 +47,10 @@ AVAILABLE ACTIONS:
 - remember (key, value)
 - get_current_time
 - calculate (input)
+- ocr_extract_text (input: image_path)
+    => Use ocr_extract_text when:
+        - the user uploads an image
+        - the user asks to read, analyze, or extract text from an image
 - final
 
 RULES:
@@ -64,6 +68,7 @@ Plan Schema:
     {{ "action": "remember", "key": "name/age/bheaviour traits/etc", "value": "user_name_here/user_age_here/user_behaviour_traits_here/etc" }},
     {{ "action": "get_current_time" }},
     {{ "action": "calculate", "input": "2+2" }},
+    {{ "action": "ocr_extract_text", "input": "image_path_given"}}
     {{ "action": "final" }}
   ]
 }}
