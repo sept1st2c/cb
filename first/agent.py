@@ -34,6 +34,54 @@ def calculate(expression):
         return "Invalid calculation"
 
 
+def planner_agent(user_input, memory):
+    system_prompt = f"""
+You are a PLANNER AI.
+
+Your job is to break the user's request into a sequence of actions.
+
+KNOWN USER INFO:
+{memory["user_profile"]}
+
+AVAILABLE ACTIONS:
+- remember (key, value)
+- get_current_time
+- calculate (input)
+- final
+
+RULES:
+- Output ONLY ONE JSON object.
+- Output a JSON with a "plan" array.
+- Each step must be ONE action.
+- Do NOT answer the user.
+- Do NOT execute tools.
+- End every plan with a "final" action.
+
+
+Plan Schema:
+{{
+  "plan": [
+    {{ "action": "remember", "key": "name/age/bheaviour traits/etc", "value": "user_name_here/user_age_here/user_behaviour_traits_here/etc" }},
+    {{ "action": "get_current_time" }},
+    {{ "action": "calculate", "input": "2+2" }},
+    {{ "action": "final" }}
+  ]
+}}
+
+"""
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_input}
+        ]
+    )
+
+    return json.loads(response.choices[0].message.content)
+
+
+
 # ---------- AGENT BRAIN ----------
 def agent_think(user_input, memory):
     system_prompt = f"""
@@ -111,63 +159,63 @@ def run_agent(user_input):
     
     memory = load_memory()
     memory.setdefault("user_profile", {})
-    memory.setdefault("tool_outputs", {})
-    memory["user_input"] = user_input
+    memory["tool_outputs"] = {}
 
-    while True:
-        decision = agent_think(user_input, memory)
-        print("🧠 Agent decision:", decision)
-        data = json.loads(decision)
+    plan_obj = planner_agent(user_input, memory)
+    print("🗺️ PLAN:", plan_obj)
 
-        action = data["action"]
+    for step in plan_obj["plan"]:
+        action = step["action"]
 
         # ---- REMEMBER ----
         if action == "remember":
-            memory["user_profile"][data["key"]] = data["value"]
+            memory["user_profile"][step["key"]] = step["value"]
+
+        # ---- TIME TOOL ----
+        elif action == "get_current_time":
+            memory["tool_outputs"]["current_time"] = get_current_time()
+
+        # ---- CALCULATOR ----
+        elif action == "calculate":
+            memory["tool_outputs"]["calculation"] = calculate(step["input"])
+
+        # ---- FINAL ----
+        elif action == "final":
             save_memory(memory)
-            user_input = f"""
-Original question:
+            return finalize_answer(user_input, memory)
+
+
+def finalize_answer(user_input, memory):
+    system_prompt = """
+You are an AI assistant answering the user.
+
+Use:
+- user profile memory
+- tool outputs
+
+Answer the FULL question clearly.
+"""
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": f"""
+User question:
 {user_input}
 
-things i remembered so far about the user:
+User profile:
 {memory["user_profile"]}
-"""
-            continue
 
-        # ---- TOOL ----
-        if action == "get_current_time":
-            result = get_current_time()
-            memory["tool_outputs"]["current_time"] = result
-
-            # IMPORTANT:
-            # After tool use, we let the agent think AGAIN
-            user_input = f"""
-Original question:
-{user_input}
-
-Tool results so far:
+Tool outputs:
 {memory["tool_outputs"]}
 """
-            
-            continue
-        
-        if action == "calculate":
-            result = calculate(data["input"])
-            memory["tool_outputs"]["calculation"] = result
+            }
+        ]
+    )
 
-            user_input = f"""
-Original question:
-{user_input}
-
-Tool results so far:
-{memory["tool_outputs"]}
-"""
-            continue
-
-        # ---- FINAL ANSWER ----
-        if action == "final":
-            save_memory(memory)
-            return data["input"]
+    return response.choices[0].message.content
 
 
 # ---------- RUN ----------
